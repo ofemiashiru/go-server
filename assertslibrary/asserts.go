@@ -1,7 +1,7 @@
 package assertslibrary
 
 import (
-	"acme/db"
+	"acme/model"
 	"reflect"
 	"testing"
 )
@@ -19,7 +19,7 @@ func CheckResponseBody(got string, want string, t *testing.T) {
 	}
 }
 
-func CheckActualJsonData(got []db.User, want []db.User, t *testing.T) {
+func CheckActualJsonData(got []model.User, want []model.User, t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("handler returned unexpected body: got %v, want %v", got, want)
 	}

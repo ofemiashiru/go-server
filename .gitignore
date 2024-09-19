@@ -1,7 +1,10 @@
 # Ignore environment variables
 .env
+*.env.inmemory
 
 # Ignore other files and directories
 node_modules/
 dist/
 *.log
+
+migrations/

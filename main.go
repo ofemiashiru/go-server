@@ -2,13 +2,13 @@ package main
 
 import (
 	"acme/api"
-	"acme/postgres"
+	"acme/config"
+	"acme/db/postgres"
+	"acme/repository/user"
+	"acme/service"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-
-	"github.com/joho/godotenv"
 )
 
 func rootHandler(writer http.ResponseWriter, request *http.Request) {
@@ -24,29 +24,44 @@ func CorsMiddleWare(next http.Handler) http.Handler {
 }
 
 func main() {
-	// Use .env
-	godotenv.Load()
-	postgrespass := os.Getenv("POSTGRESSPASS")
+	//Load config change to .Postgress or .inmemory
+	config := config.LoadDatabaseConfig(".env.inmemory")
 
-	// Postgress connection
-	connectionString := fmt.Sprintf("user=postgres dbname=acme password=%s host=localhost sslmode=disable", postgrespass)
-	if err := postgres.InitDB(connectionString); err != nil {
-		fmt.Println("Error initialising databse:", err)
-		return
+	var userRepo user.UserRepository
+
+	switch config.Type {
+	case "postgres":
+		connectionString := fmt.Sprintf("user=%s dbname=%s password=%s host=%s sslmode=%s", config.User, config.DBName, config.Password, config.Host, config.SSLMode)
+
+		db, err := postgres.PostgresConnection(connectionString)
+		if err != nil {
+			panic(err)
+		}
+
+		userRepo = user.NewPostgresUserRepository(db.DB)
+
+	case "inmemory":
+		//for in-memory, we don't need db connection details as the repository itself does this
+		userRepo = user.NewInMemoryRepository()
+
+	default:
+		fmt.Errorf("unsupported database type: %s", config.Type)
 	}
 
-	defer postgres.DB.Close()
+	// Initialize services
+	userService := service.NewUserService(userRepo)
+	userAPI := api.NewUserAPI(userService)
 
 	//set up our multiplexer - we then use the router.HandleFunc to handle
 	router := http.NewServeMux()
 
 	// router.HandlFunc can handle multiple routes
 	router.HandleFunc("GET /", rootHandler)
-	router.HandleFunc("GET /api/users", api.GetUsers)
-	router.HandleFunc("POST /api/users", api.CreateUser)
-	router.HandleFunc("GET /api/users/{id}", api.GetSingleUser)
-	router.HandleFunc("DELETE /api/users/{id}", api.DeleteSingleUser)
-	router.HandleFunc("PUT /api/users/{id}", api.UpdateSingleUser)
+	router.HandleFunc("GET /api/users", userAPI.GetUsers)
+	router.HandleFunc("POST /api/users", userAPI.CreateUser)
+	router.HandleFunc("GET /api/users/{id}", userAPI.GetSingleUser)
+	router.HandleFunc("DELETE /api/users/{id}", userAPI.DeleteSingleUser)
+	router.HandleFunc("PUT /api/users/{id}", userAPI.UpdateSingleUser)
 
 	// Start Server here
 	fmt.Println("Server listening on port 8080")

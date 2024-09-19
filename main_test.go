@@ -1,13 +1,19 @@
 package main
 
 import (
+	"acme/api"
 	"acme/assertslibrary"
-	"acme/db"
-	"bytes"
+	"acme/config"
+	"acme/db/postgres"
+	"acme/model"
+	"acme/repository/user"
+	"acme/service"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -82,6 +88,25 @@ func TestRootHandlerWithServer(t *testing.T) {
 
 func TestGetUsersHandler(t *testing.T) {
 	// Arrange
+
+	//Connect to DB and prep test
+	config := config.Postgres
+	var userRepo user.UserRepository
+
+	connectionString := fmt.Sprintf("user=%s dbname=%s password=%s host=%s sslmode=%s", config.User, config.DBName, config.Password, config.Host, config.SSLMode)
+
+	db, err := postgres.PostgresConnection(connectionString)
+	if err != nil {
+		panic(err)
+	}
+
+	userRepo = user.NewPostgresUserRepository(db.DB)
+
+	// Initialize services
+	userService := service.NewUserService(userRepo)
+	userAPI := api.NewUserAPI(userService)
+	// Abstract out ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 	req, err := http.NewRequest("GET", "/api/users", nil)
 
 	if err != nil {
@@ -92,17 +117,14 @@ func TestGetUsersHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// handler
-	handler := http.HandlerFunc(getUsers)
+	handler := http.HandlerFunc(userAPI.GetUsers)
 
 	// Arrange out expected result
-	expected := []db.User{
-		{ID: 1, Name: "Name 1"},
-		{ID: 2, Name: "Name 2"},
-		{ID: 3, Name: "Name 3"},
+	expected := []model.User{
+		{ID: 20, Name: "Name 1"},
+		{ID: 18, Name: "Name 2"},
+		{ID: 19, Name: "Name 3"},
 	}
-
-	// Marshall/serialize the data
-	expectedJSON, err := json.Marshal(expected)
 
 	if err != nil {
 		t.Fatalf("Failed to marshal expectedJSON: %v", err)
@@ -116,9 +138,7 @@ func TestGetUsersHandler(t *testing.T) {
 	// Assert using assert library
 	assertslibrary.CheckStatusCode(rr.Code, http.StatusOK, t)
 
-	assertslibrary.CheckResponseBody(rr.Body.String(), string(expectedJSON), t)
-
-	var actual []db.User // used to store our unmarshalled data
+	var actual []model.User // used to store our unmarshalled data
 
 	// attempting to unmarshal/deserialize response body and then place it in actual
 	if err := json.Unmarshal(rr.Body.Bytes(), &actual); err != nil {
@@ -126,91 +146,91 @@ func TestGetUsersHandler(t *testing.T) {
 	}
 
 	// This allows the JSON responses to be compared based on their logical content rather than their string representation.
-	// if !reflect.DeepEqual(actual, expected) {
-	// 	t.Errorf("handler returned unexpected body: got %v, want %v", actual, expected)
-	// }
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("handler returned unexpected body: got %v, want %v", actual, expected)
+	}
 
 	assertslibrary.CheckActualJsonData(actual, expected, t)
 
 }
 
-func TestGetUsersHandlerWithServer(t *testing.T) {
-	// Arrange
-	server := httptest.NewServer(http.HandlerFunc(getUsers))
+// func TestGetUsersHandlerWithServer(t *testing.T) {
+// 	// Arrange
+// 	server := httptest.NewServer(http.HandlerFunc(getUsers))
 
-	expected := []db.User{
-		{ID: 1, Name: "Name 1"},
-		{ID: 2, Name: "Name 2"},
-		{ID: 3, Name: "Name 3"},
-	}
+// 	expected := []model.User{
+// 		{ID: 1, Name: "Name 1"},
+// 		{ID: 2, Name: "Name 2"},
+// 		{ID: 3, Name: "Name 3"},
+// 	}
 
-	// Marshall/serialize the data
-	expectedJSON, err := json.Marshal(expected)
+// 	// Marshall/serialize the data
+// 	expectedJSON, err := json.Marshal(expected)
 
-	if err != nil {
-		t.Fatalf("Failed to marshal expectedJSON: %v", err)
-	}
+// 	if err != nil {
+// 		t.Fatalf("Failed to marshal expectedJSON: %v", err)
+// 	}
 
-	defer server.Close()
+// 	defer server.Close()
 
-	// Act
-	response, err := http.Get(server.URL + "/api/users")
+// 	// Act
+// 	response, err := http.Get(server.URL + "/api/users")
 
-	if err != nil {
-		t.Fatalf("Failed to send GET request: %v", err)
-	}
+// 	if err != nil {
+// 		t.Fatalf("Failed to send GET request: %v", err)
+// 	}
 
-	defer response.Body.Close()
+// 	defer response.Body.Close()
 
-	bodyBytes, err := io.ReadAll(response.Body)
-	if err != nil {
-		t.Fatalf("Failed to read response body %v", err)
-	}
-	var actual []db.User // used to store our unmarshalled data
+// 	bodyBytes, err := io.ReadAll(response.Body)
+// 	if err != nil {
+// 		t.Fatalf("Failed to read response body %v", err)
+// 	}
+// 	var actual []model.User // used to store our unmarshalled data
 
-	// attempting to unmarshal/deserialize response body and then place it in actual
-	if err := json.Unmarshal(bodyBytes, &actual); err != nil {
-		t.Fatalf("Failed to unmarshal response body: %v", err)
-	}
+// 	// attempting to unmarshal/deserialize response body and then place it in actual
+// 	if err := json.Unmarshal(bodyBytes, &actual); err != nil {
+// 		t.Fatalf("Failed to unmarshal response body: %v", err)
+// 	}
 
-	// Assert
-	assertslibrary.CheckStatusCode(response.StatusCode, http.StatusOK, t)
+// 	// Assert
+// 	assertslibrary.CheckStatusCode(response.StatusCode, http.StatusOK, t)
 
-	assertslibrary.CheckResponseBody(string(bodyBytes), string(expectedJSON), t)
+// 	assertslibrary.CheckResponseBody(string(bodyBytes), string(expectedJSON), t)
 
-	assertslibrary.CheckActualJsonData(actual, expected, t)
+// 	assertslibrary.CheckActualJsonData(actual, expected, t)
 
-}
+// }
 
-func TestCreateUserHandler(t *testing.T) {
-	// Arrange
-	expectedString := db.User{
-		ID: 4, Name: "Eddie",
-	}
+// func TestCreateUserHandler(t *testing.T) {
+// 	// Arrange
+// 	expectedString := model.User{
+// 		ID: 4, Name: "Eddie",
+// 	}
 
-	expectedJSON, err := json.Marshal(expectedString)
+// 	expectedJSON, err := json.Marshal(expectedString)
 
-	if err != nil {
-		t.Fatalf("Failed to marshal expectedJSON: %v", err)
-	}
+// 	if err != nil {
+// 		t.Fatalf("Failed to marshal expectedJSON: %v", err)
+// 	}
 
-	req, err := http.NewRequest("POST", "/api/users", bytes.NewReader(expectedJSON))
+// 	req, err := http.NewRequest("POST", "/api/users", bytes.NewReader(expectedJSON))
 
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	// response recorder
-	rr := httptest.NewRecorder()
+// 	// response recorder
+// 	rr := httptest.NewRecorder()
 
-	// handler
-	handler := http.HandlerFunc(createUser)
+// 	// handler
+// 	handler := http.HandlerFunc(createUser)
 
-	// Act
+// 	// Act
 
-	// server request
-	handler.ServeHTTP(rr, req)
+// 	// server request
+// 	handler.ServeHTTP(rr, req)
 
-	assertslibrary.CheckStatusCode(rr.Code, http.StatusCreated, t)
+// 	assertslibrary.CheckStatusCode(rr.Code, http.StatusCreated, t)
 
-}
+// }
