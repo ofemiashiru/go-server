@@ -4,6 +4,7 @@ import (
 	"acme/api"
 	"acme/config"
 	"acme/db/postgres"
+	"acme/repository/product"
 	"acme/repository/user"
 	"acme/service"
 	"fmt"
@@ -28,6 +29,7 @@ func main() {
 	config := config.LoadDatabaseConfig( /*".env.inmemory"*/ )
 
 	var userRepo user.UserRepository
+	var productRepo product.ProductRepository
 
 	switch config.Type {
 	case "postgres":
@@ -39,6 +41,7 @@ func main() {
 		}
 
 		userRepo = user.NewPostgresUserRepository(db.DB)
+		productRepo = product.NewPostgresProductRepository(db.DB)
 
 	case "inmemory":
 		//for in-memory, we don't need db connection details as the repository itself does this
@@ -52,6 +55,8 @@ func main() {
 	userService := service.NewUserService(userRepo)
 	userAPI := api.NewUserAPI(userService)
 
+	productService := service.NewProductService(productRepo)
+	productAPI := api.NewProductPI(productService)
 	//set up our multiplexer - we then use the router.HandleFunc to handle
 	router := http.NewServeMux()
 
@@ -62,6 +67,7 @@ func main() {
 	router.HandleFunc("GET /api/users/{id}", userAPI.GetSingleUser)
 	router.HandleFunc("DELETE /api/users/{id}", userAPI.DeleteSingleUser)
 	router.HandleFunc("PUT /api/users/{id}", userAPI.UpdateSingleUser)
+	router.HandleFunc("GET /api/products", productAPI.GetProducts)
 
 	// Start Server here
 	fmt.Println("Server listening on port 8080")
