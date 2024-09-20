@@ -25,7 +25,7 @@ func CorsMiddleWare(next http.Handler) http.Handler {
 
 func main() {
 	//Load config change to .Postgress or .inmemory
-	config := config.LoadDatabaseConfig(".env.inmemory")
+	config := config.LoadDatabaseConfig( /*".env.inmemory"*/ )
 
 	var userRepo user.UserRepository
 
