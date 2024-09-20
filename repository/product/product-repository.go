@@ -37,6 +37,16 @@ func (repo *PostgresProductRepository) GetProducts() ([]model.Product, error) {
 	return products, nil
 }
 
+func (repo *PostgresProductRepository) AddProduct(product []model.Product) (id int, err error) {
+	err = sqlx.Select(repo.DB, &product, "INSERT INTO products (name, price, stock_count) VALUES ($1, $2, $3) RETURNING id;", product[0].Name, product[0].Price, product[0].StockCount)
+	if err != nil {
+		fmt.Println("Error inserting product into the database:", err)
+		return 0, errors.New("could not insert product")
+	}
+
+	return product[0].ID, nil
+}
+
 func (repo *PostgresProductRepository) Close() {
 
 }

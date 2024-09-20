@@ -6,5 +6,6 @@ import (
 
 type ProductRepository interface {
 	GetProducts() ([]model.Product, error)
+	AddProduct(product []model.Product) (id int, err error)
 	Close()
 }

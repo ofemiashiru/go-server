@@ -62,12 +62,17 @@ func main() {
 
 	// router.HandlFunc can handle multiple routes
 	router.HandleFunc("GET /", rootHandler)
+
+	// User Roots
 	router.HandleFunc("GET /api/users", userAPI.GetUsers)
 	router.HandleFunc("POST /api/users", userAPI.CreateUser)
 	router.HandleFunc("GET /api/users/{id}", userAPI.GetSingleUser)
 	router.HandleFunc("DELETE /api/users/{id}", userAPI.DeleteSingleUser)
 	router.HandleFunc("PUT /api/users/{id}", userAPI.UpdateSingleUser)
+
+	// Product Roots
 	router.HandleFunc("GET /api/products", productAPI.GetProducts)
+	router.HandleFunc("POST /api/products", productAPI.CreateProudct)
 
 	// Start Server here
 	fmt.Println("Server listening on port 8080")

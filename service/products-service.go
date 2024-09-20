@@ -29,3 +29,15 @@ func (s *ProductService) GetProducts() ([]model.Product, error) {
 	return products, nil
 
 }
+
+func (s *ProductService) CreateProduct(product []model.Product) (id int, err error) {
+
+	id, err = s.repository.AddProduct(product)
+
+	if err != nil {
+		fmt.Println("Error creating product in DB:", err)
+		return 0, errors.New("could not create product")
+	}
+
+	return id, nil
+}
