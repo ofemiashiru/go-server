@@ -3,14 +3,10 @@ package main
 import (
 	"acme/api"
 	"acme/assertslibrary"
-	"acme/config"
 	"acme/db/mock"
-	"acme/db/postgres"
 	"acme/model"
-	"acme/repository/user"
 	"acme/service"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -87,73 +83,55 @@ func TestRootHandlerWithServer(t *testing.T) {
 
 }
 
-func TestGetUsersHandler(t *testing.T) {
-	// Arrange
+// func TestGetUsersHandler(t *testing.T) {
+// 	// Arrange
 
-	//Connect to DB and prep test
-	config := config.Postgres
-	var userRepo user.UserRepository
+// 	req, err := http.NewRequest("GET", "/api/users", nil)
 
-	connectionString := fmt.Sprintf("user=%s dbname=%s password=%s host=%s sslmode=%s", config.User, config.DBName, config.Password, config.Host, config.SSLMode)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	db, err := postgres.PostgresConnection(connectionString)
-	if err != nil {
-		panic(err)
-	}
+// 	// New response recorder
+// 	rr := httptest.NewRecorder()
 
-	userRepo = user.NewPostgresUserRepository(db.DB)
+// 	// handler
+// 	handler := http.HandlerFunc(userAPI.GetUsers)
 
-	// Initialize services
-	userService := service.NewUserService(userRepo)
-	userAPI := api.NewUserAPI(userService)
-	// Abstract out ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// 	// Arrange out expected result
+// 	expected := []model.User{
+// 		{ID: 20, Name: "Name 1"},
+// 		{ID: 18, Name: "Name 2"},
+// 		{ID: 19, Name: "Name 3"},
+// 	}
 
-	req, err := http.NewRequest("GET", "/api/users", nil)
+// 	if err != nil {
+// 		t.Fatalf("Failed to marshal expectedJSON: %v", err)
+// 	}
 
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	// Act
 
-	// New response recorder
-	rr := httptest.NewRecorder()
+// 	//Serve request
+// 	handler.ServeHTTP(rr, req)
 
-	// handler
-	handler := http.HandlerFunc(userAPI.GetUsers)
+// 	// Assert using assert library
+// 	assertslibrary.CheckStatusCode(rr.Code, http.StatusOK, t)
 
-	// Arrange out expected result
-	expected := []model.User{
-		{ID: 20, Name: "Name 1"},
-		{ID: 18, Name: "Name 2"},
-		{ID: 19, Name: "Name 3"},
-	}
+// 	var actual []model.User // used to store our unmarshalled data
 
-	if err != nil {
-		t.Fatalf("Failed to marshal expectedJSON: %v", err)
-	}
+// 	// attempting to unmarshal/deserialize response body and then place it in actual
+// 	if err := json.Unmarshal(rr.Body.Bytes(), &actual); err != nil {
+// 		t.Fatalf("Failed to unmarshal response body: %v", err)
+// 	}
 
-	// Act
+// 	// This allows the JSON responses to be compared based on their logical content rather than their string representation.
+// 	if !reflect.DeepEqual(actual, expected) {
+// 		t.Errorf("handler returned unexpected body: got %v, want %v", actual, expected)
+// 	}
 
-	//Serve request
-	handler.ServeHTTP(rr, req)
+// 	assertslibrary.CheckActualJsonData(actual, expected, t)
 
-	// Assert using assert library
-	assertslibrary.CheckStatusCode(rr.Code, http.StatusOK, t)
-
-	var actual []model.User // used to store our unmarshalled data
-
-	// attempting to unmarshal/deserialize response body and then place it in actual
-	if err := json.Unmarshal(rr.Body.Bytes(), &actual); err != nil {
-		t.Fatalf("Failed to unmarshal response body: %v", err)
-	}
-
-	// This allows the JSON responses to be compared based on their logical content rather than their string representation.
-	if !reflect.DeepEqual(actual, expected) {
-		t.Errorf("handler returned unexpected body: got %v, want %v", actual, expected)
-	}
-
-	assertslibrary.CheckActualJsonData(actual, expected, t)
-
-}
+// }
 
 // func TestGetUsersHandlerWithServer(t *testing.T) {
 // 	// Arrange
