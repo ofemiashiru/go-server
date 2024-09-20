@@ -42,15 +42,15 @@ func (s *UserService) GetUsers() ([]model.User, error) {
 
 }
 
-func (s *UserService) GetUser(id int) (model.User, error) {
+func (s *UserService) GetUser(id int) ([]model.User, error) {
 	user, err := s.repository.GetUser(id)
 
 	if err != nil {
 		fmt.Println("Error getting user from DB:", err)
-		return model.User{}, errors.New("there was an error getting the user from database")
+		return []model.User{}, errors.New("there was an error getting the user from database")
 	}
 
-	return user[0], nil
+	return user, nil
 }
 
 func (s *UserService) DeleteUser(id int) error {
