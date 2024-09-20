@@ -73,10 +73,11 @@ stages:
         azureSubscription: $(azureSubscription)
         appName: $(appName)
         containers: $(containerRegistry)/$(imageRepository):$(tag)
-        appSettings:
-          DBTYPE: $(DBTYPE)
-          DBHOST: $(DBHOST)
-          DBNAME: $(DBNAME)
-          DBUSER: $(DBUSER)
-          DBPASSWORD: $(DBPASSWORD)
-          DBSSLMODE: $(DBSSSLMODE)
+      env:
+        DBTYPE: $(DBTYPE)
+        DBHOST: $(DBHOST)
+        DBNAME: $(DBNAME)
+        DBUSER: $(DBUSER)
+        DBPASSWORD: $(DBPASSWORD)
+        DBSSLMODE: $(DBSSSLMODE)
+        
