@@ -18,7 +18,7 @@ variables:
 - name: azureSubscription
   value: 'Azure RM'
 - name: appName
-  value: 'example-app'
+  value: 'acr-femi-ashiru'
 
 trigger:
 - main
